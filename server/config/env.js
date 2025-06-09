@@ -15,7 +15,8 @@ const ENV = {
     STATE_SECRET: process.env.STATE_SECRET || 'secret',
     REDIRECT_URI: process.env.REDIRECT_URI,
     SPOTIFY_CLIENT_ID: process.env.SPOTIFY_CLIENT_ID,
-    SPOTIFY_CLIENT_SECRET: process.env.SPOTIFY_CLIENT_SECRET
+    SPOTIFY_CLIENT_SECRET: process.env.SPOTIFY_CLIENT_SECRET,
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
 };
 
 export default ENV;

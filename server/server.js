@@ -7,6 +7,9 @@ import cors from 'cors';
 import querystring from 'querystring';
 import axios from 'axios';
 
+import { geminiChatService } from './services/gemini.js';
+import multer from 'multer';
+
 const app = express();
 const port = ENV.PORT;
 const mode = ENV.NODE_ENV;
@@ -34,6 +37,8 @@ function generateSecureState(){
 
 //Middleware
 app.use(cors(corsOptions));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
 app.get('/api', (req, res) => {
     return res.send('API ROUTE IN SERVER');
@@ -63,7 +68,6 @@ app.get('/api/login', (req, res) => {
 app.get('/api/callback', async (req, res) => {
     try{
         const { code, state, error } = req.query;
-        console.log("CODE, STATE, ERROR:", code, state, error);
 
         //Validate state
         if(!state || !stateStore.has(state.split('.')[0])){
@@ -91,14 +95,85 @@ app.get('/api/callback', async (req, res) => {
 
         const tokenResponse = await axios.post('https://accounts.spotify.com/api/token', formData, authHeader, { json: true });
 
-        console.log("Token response: ", tokenResponse);
-
-        res.redirect(`${ENV.CLIENT_URL}/?access_token=${tokenResponse.data.access_token}`);
+        res.redirect(`${ENV.CLIENT_URL}/?access_token=${tokenResponse.data.access_token}&refresh_token=${tokenResponse.data.refresh_token}&expires_in=${tokenResponse.data.expires_in}`);
     }catch(err){
         console.error('Callback error:', err);
         res.redirect(`${ENV.CLIENT_URL}/login?error=auth_failed`);
     }
 });
+
+app.get('/api/user-info', async (req, res) => {
+    try{
+        const accessToken = req.headers.authorization?.split(' ')[1];
+        
+        if(!accessToken){
+            return res.status(401).json({ error: 'Missing access token' });
+        }
+
+        const userResponse = await axios.get('https://api.spotify.com/v1/me', {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`
+            }
+        });
+
+        res.json(userResponse.data);
+    }catch(err){
+        console.error('Fetching user info error:', err.response?.data || err.message);
+        res.status(500).json({ error: 'Failed to fetch user info' });
+    }
+});
+
+app.post('/api/generate-response', async (req, res) => {
+    try{
+        console.log(req.body);
+        const { prompt } = req.body;
+
+        if(!prompt){
+            return res.status(400).json({
+                error: 'Prompt is required'
+            });
+        }
+
+        const aiResponse = await geminiChatService(prompt);
+
+        console.log("Gemini Reponse: ", aiResponse);
+        res.json({
+            response: aiResponse
+        });
+        
+    }catch(err){
+        console.error('Generation error:', err);
+        res.status(500).json({ error: 'Failed to generate response' });
+    }
+});
+
+//Refresh token
+app.post('/api/refresh-token', async (req, res) => {
+    try{
+        const { refresh_token } = req.body;
+
+        const postHeaders = {
+            'Content-Type': 'application/json',
+            'Authorization': `Basic ${Buffer.from(`${ENV.SPOTIFY_CLIENT_ID}:${ENV.SPOTIFY_CLIENT_SECRET}`).toString('base64')}`
+        }
+
+        const postForm = {
+            grant_type: 'refresh_token',
+            refresh_token: refresh_token,
+        }
+
+        const response = await axios.post('https://accounts.spotify.com/api/token', postForm, postHeaders, { json: true });
+
+        console.log("Response for refresh token -> ",response);
+        res.json({
+            access_token: response.data.access_token,
+            expires_in: response.data.expires_in 
+        });
+    }catch(err){
+        console.error('Refresh error:', err.response?.data || err.message);
+        res.status(401).json({ error: 'Token refresh failed' });
+    }
+})
 
 
 

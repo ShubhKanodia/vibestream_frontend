@@ -7,7 +7,7 @@ import cors from 'cors';
 import querystring from 'querystring';
 import axios from 'axios';
 
-import { geminiChatService } from './services/gemini.js';
+import { geminiChatService, geminiVisionService } from './services/gemini.js';
 import multer from 'multer';
 
 const app = express();
@@ -39,6 +39,95 @@ function generateSecureState(){
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+
+//Helper Functions -> Add in util or services
+async function getTopTracks(accessToken, timeRange='medium_term', limit=10){
+    try{
+        const response = await axios.get(`https://api.spotify.com/v1/me/top/tracks?time_range=${timeRange}&limit=${limit}`,{
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+
+        console.log(response.data.items);
+        return response.data.items;
+    }catch(err){
+        console.error(`Error fetching the top tracks!`, err.message);
+        return null;
+    }
+}
+
+async function getTopArtists(accessToken, timeRange='medium_term', limit=10){
+    try{
+        const response = await axios.get(`https://api.spotify.com/v1/me/top/artists?time_range=${timeRange}&limit=${limit}`,{
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+
+        console.log(response.data.items);
+        return response.data.items;
+    }catch(err){
+        console.error(`Error fetching the top artists!`, err.message);
+        return null;
+    }
+}
+
+async function getRecentlyPlayed(accessToken, limit=20){
+    try{
+        const response = await axios.get(`https://api.spotify.com/v1/me/playlists?limit=${limit}`,{
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+
+        console.log(response.data.items);
+        return response.data.items;
+    }catch(err){
+        console.error(`Error fetching the recently played!`, err.message);
+        return null;
+    }
+}
+
+async function getUserPlaylists(accessToken, limit=20){
+    try{
+        const response = await axios.get(`https://api.spotify.com/v1/me/playlists?limit=${limit}`, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+
+        console.log(response.data.items);
+        return response.data.items;
+    }catch(err){
+        console.error(`Error fetching the playlists!`, err.message);
+        return null;
+    }
+}
+
+async function getUserFollowedArtists(accessToken, limit=10){
+    try{
+        const response = await axios.get(`https://api.spotify.com/v1/me/following?type=artist&limit=${limit}`, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }  
+        });
+
+        console.log(response.data.items);
+        return response.data.items;
+    }catch(err){
+
+    }
+}
+
+//Multer 
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: 4 * 1024 * 1024 
+    }
+});
 
 app.get('/api', (req, res) => {
     return res.send('API ROUTE IN SERVER');
@@ -125,13 +214,37 @@ app.get('/api/user-info', async (req, res) => {
 
 app.post('/api/generate-response', async (req, res) => {
     try{
-        console.log(req.body);
         const { prompt } = req.body;
+        const accessToken = req.headers.authorization?.split(' ')[1];
 
         if(!prompt){
             return res.status(400).json({
                 error: 'Prompt is required'
             });
+        }
+
+        let spotifyContext = ' ';
+
+        if(accessToken){
+            try{
+                //Fetch Spotify data in parallel
+                const [topTracks, topArtists, recentTracks, userPlaylists, userFollowedArtists] = await Promise.all([
+                    getTopTracks(accessToken),
+                    getTopArtists(accessToken),
+                    getRecentlyPlayed(accessToken),
+                    getUserPlaylists(accessToken),
+                    getUserFollowedArtists(accessToken)
+                ]);
+
+                spotifyContext = `\nUser's Spotify data: \n` + 
+                                `Top Tracks: ${topTracks?.map(t => t.name).join(', ') || 'None'}` + 
+                                `Top Artists: ${topArtists?.map(a => a.name).join(', ') || 'None'}` + 
+                                `Recently Played: ${recentTracks?.map(r => r.track.name).join(', ') || 'None'}` + 
+                                `Playlists: ${userPlaylists?.map(p => p.name).join(', ') || 'None'}` + 
+                                `Followed Artists: ${userFollowedArtists?.map(art => art.name).join(', ') || 'None'}`
+            }catch(err){
+                
+            }
         }
 
         const aiResponse = await geminiChatService(prompt);
@@ -146,6 +259,43 @@ app.post('/api/generate-response', async (req, res) => {
         res.status(500).json({ error: 'Failed to generate response' });
     }
 });
+
+app.post('/api/analyze-image', upload.single('image'), async (req, res) => {
+    try{        
+        if(!req.file){
+            return res.status(400).json({ error: 'No image uploaded!' });
+        }
+
+        const { prompt } = req.body;
+        console.log("Prompt used: ", prompt);
+        const { buffer, mimeType } = req.file;
+
+        const base64Image = buffer.toString('base64');
+
+        //Do something with file size as well!
+        const fileSizeInMB = buffer.length / (1024 * 1024);
+        if (fileSizeInMB > 20) { 
+            return res.status(400).json({ error: 'File too large. Maximum size is 20MB.' });
+        }
+
+        const analysis = await geminiVisionService({
+            image: base64Image,
+            mimeType: mimeType,
+            prompt: prompt
+        });
+
+        console.log("Gemini Response: ", analysis);
+        
+        return res.json({
+            message: analysis,
+        });
+    }catch(err){
+        console.error("Analyze image error: ", err);
+        return res.status(500).json({ 
+            error: err.message || 'Failed to analyze image' 
+        });
+    }
+})
 
 //Refresh token
 app.post('/api/refresh-token', async (req, res) => {

@@ -6,9 +6,11 @@ import cors from 'cors';
 
 import querystring from 'querystring';
 import axios from 'axios';
+import multer from 'multer';
 
 import { geminiChatService, geminiVisionService } from './services/gemini.js';
-import multer from 'multer';
+import { getTopTracks, getTopArtists, getRecentlyPlayed, getUserPlaylists, getUserFollowedArtists } from './services/spotify.js';
+import authRouter from './routes/auth.routes.js';
 
 const app = express();
 const port = ENV.PORT;
@@ -41,86 +43,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 
-//Helper Functions -> Add in util or services
-async function getTopTracks(accessToken, timeRange='medium_term', limit=10){
-    try{
-        const response = await axios.get(`https://api.spotify.com/v1/me/top/tracks?time_range=${timeRange}&limit=${limit}`,{
-            headers: {
-                'Authorization': `Bearer ${accessToken}`
-            }
-        });
-
-        console.log(response.data.items);
-        return response.data.items;
-    }catch(err){
-        console.error(`Error fetching the top tracks!`, err.message);
-        return null;
-    }
-}
-
-async function getTopArtists(accessToken, timeRange='medium_term', limit=10){
-    try{
-        const response = await axios.get(`https://api.spotify.com/v1/me/top/artists?time_range=${timeRange}&limit=${limit}`,{
-            headers: {
-                'Authorization': `Bearer ${accessToken}`
-            }
-        });
-
-        console.log(response.data.items);
-        return response.data.items;
-    }catch(err){
-        console.error(`Error fetching the top artists!`, err.message);
-        return null;
-    }
-}
-
-async function getRecentlyPlayed(accessToken, limit=20){
-    try{
-        const response = await axios.get(`https://api.spotify.com/v1/me/playlists?limit=${limit}`,{
-            headers: {
-                'Authorization': `Bearer ${accessToken}`
-            }
-        });
-
-        console.log(response.data.items);
-        return response.data.items;
-    }catch(err){
-        console.error(`Error fetching the recently played!`, err.message);
-        return null;
-    }
-}
-
-async function getUserPlaylists(accessToken, limit=20){
-    try{
-        const response = await axios.get(`https://api.spotify.com/v1/me/playlists?limit=${limit}`, {
-            headers: {
-                'Authorization': `Bearer ${accessToken}`
-            }
-        });
-
-        console.log(response.data.items);
-        return response.data.items;
-    }catch(err){
-        console.error(`Error fetching the playlists!`, err.message);
-        return null;
-    }
-}
-
-async function getUserFollowedArtists(accessToken, limit=10){
-    try{
-        const response = await axios.get(`https://api.spotify.com/v1/me/following?type=artist&limit=${limit}`, {
-            headers: {
-                'Authorization': `Bearer ${accessToken}`
-            }  
-        });
-
-        console.log(response.data.items);
-        return response.data.items;
-    }catch(err){
-
-    }
-}
-
 //Multer 
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -133,7 +55,9 @@ app.get('/api', (req, res) => {
     return res.send('API ROUTE IN SERVER');
 });
 
-app.get('/api/login', (req, res) => {
+app.use('/api', authRouter);
+
+app.get('/api/spotfy-login', (req, res) => {
     try{
         const scope = 'user-read-private user-read-email user-top-read';
         const state = generateSecureState();
@@ -243,11 +167,15 @@ app.post('/api/generate-response', async (req, res) => {
                                 `Playlists: ${userPlaylists?.map(p => p.name).join(', ') || 'None'}` + 
                                 `Followed Artists: ${userFollowedArtists?.map(art => art.name).join(', ') || 'None'}`
             }catch(err){
-                
+                console.error('Error fetching Spotify data:', spotifyErr);
             }
         }
 
-        const aiResponse = await geminiChatService(prompt);
+        const fullPrompt = `User asked: ${prompt}${spotifyContext}\n\n` +
+            `Please provide a personalized response considering the user's music preferences when relevant. ` +
+            `If they asked for music recommendations, suggest songs or artists that align with their taste.`;
+
+        const aiResponse = await geminiChatService(fullPrompt);
 
         console.log("Gemini Reponse: ", aiResponse);
         res.json({
@@ -261,13 +189,13 @@ app.post('/api/generate-response', async (req, res) => {
 });
 
 app.post('/api/analyze-image', upload.single('image'), async (req, res) => {
+    const accessToken = req.headers.authorization?.split(' ')[1];
     try{        
         if(!req.file){
             return res.status(400).json({ error: 'No image uploaded!' });
         }
 
         const { prompt } = req.body;
-        console.log("Prompt used: ", prompt);
         const { buffer, mimeType } = req.file;
 
         const base64Image = buffer.toString('base64');
@@ -278,10 +206,32 @@ app.post('/api/analyze-image', upload.single('image'), async (req, res) => {
             return res.status(400).json({ error: 'File too large. Maximum size is 20MB.' });
         }
 
+        let spotifyContext = '';
+        if(accessToken){
+            try{
+                const [topTracks, topArtists] = await Promise.all([
+                    getTopTracks(accessToken),
+                    getTopArtists(accessToken),
+                ]);
+
+                spotifyContext = `\n\nUser's Music Preferences:\n` +
+                    `Favorite Tracks: ${topTracks?.map(t => t.name).join(', ') || 'None'}\n` +
+                    `Favorite Artists: ${topArtists?.map(a => a.name).join(', ') || 'None'}`;
+            }catch(err){
+                console.error('Error fetching Spotify data:', spotifyErr);
+            }
+        }
+
+        const fullPrompt = `Analyze this image with the following context:\n` +
+            `User description: ${prompt || 'No description provided'}\n` +
+            `When suggesting music based on the image, consider these preferences:${spotifyContext}\n\n` +
+            `Provide a detailed analysis of the image and suggest appropriate music. ` +
+            `If the user has favorite artists, try to recommend songs from those artists when relevant.`;
+
         const analysis = await geminiVisionService({
             image: base64Image,
             mimeType: mimeType,
-            prompt: prompt
+            prompt: fullPrompt
         });
 
         console.log("Gemini Response: ", analysis);

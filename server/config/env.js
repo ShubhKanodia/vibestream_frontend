@@ -11,6 +11,7 @@ config({
 const ENV = {
     PORT: Number(process.env.PORT) || 8000,
     NODE_ENV: process.env.NODE_ENV || 'development',
+    SALT_ROUNDS: process.env.SALT_ROUNDS,
     CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:5173',
     STATE_SECRET: process.env.STATE_SECRET || 'secret',
     REDIRECT_URI: process.env.REDIRECT_URI,

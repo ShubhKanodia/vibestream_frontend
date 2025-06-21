@@ -1,0 +1,147 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+.login-bg {
+  min-height: 100vh;
+  width: 100vw;
+  background: #121212 url('/vibestream_bg.jpg') center center/cover no-repeat;
+  filter: contrast(1.15) brightness(1.1) saturate(1.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+.login-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 60% 10%, #1db95433 0%, transparent 70%),
+              radial-gradient(circle at 10% 90%, #1db95422 0%, transparent 70%),
+              linear-gradient(120deg, #232526 0%, #121212 100%);
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.95;
+}
+
+.login-container.vibestream {
+  z-index: 1;
+  background: rgba(18, 18, 18, 0.7);
+  border-radius: 2rem;
+  box-shadow: 0 8px 32px 0 rgba(0,0,0,0.37);
+  padding: 48px 40px 40px 40px;
+  min-height: 380px;
+  height: auto;
+  gap: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  max-width: 480px;
+  width: 100%;
+  backdrop-filter: blur(24px) saturate(1.2);
+  border: 1.5px solid rgba(255,255,255,0.07);
+}
+
+.vs-branding {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.vs-logo {
+  width: 140px;
+  height: 135px;
+  border-radius: 32px;
+  border: 4px solid #1db954;
+  box-shadow: 0 4px 32px 0 #1db95455, 0 2px 16px 0 #0008;
+  background: rgba(29,185,84,0.08);
+  margin-bottom: 8px;
+}
+
+.vs-title {
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 2.6rem;
+  font-weight: 700;
+  letter-spacing: -1px;
+  background: linear-gradient(90deg, #1db954 0%, #1ed760 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+}
+
+.vs-subtitle {
+  color: #b3b3b3;
+  font-size: 1.1rem;
+  margin: 0;
+  font-weight: 400;
+}
+
+.spotify-oauth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(90deg, #158443 0%, #1db954 100%);
+  color: #fff;
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 999px;
+  padding: 14px 28px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px 0 #1db95433;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+  margin-top: 0;
+}
+.spotify-oauth-btn:hover {
+  filter: none;
+  box-shadow: 0 4px 12px #1db95433;
+  background: linear-gradient(90deg, #158443 0%, #1db954 100%);
+  transform: translateY(-1px) scale(1.02);
+}
+.spotify-logo {
+  width: 32px;
+  height: 32px;
+  background: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  display: block;
+}
+
+@media (max-width: 600px) {
+  .login-container.vibestream {
+    padding: 32px 8px 24px 8px;
+    gap: 32px;
+  }
+  .vs-title {
+    font-size: 2rem;
+  }
+  .spotify-oauth-btn {
+    font-size: 1.1rem;
+    padding: 16px 18px;
+  }
+  .vs-logo {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+body, html {
+  overflow: hidden !important;
+}
+
+/* Hide all scrollbars */
+::-webkit-scrollbar {
+  display: none !important;
+}
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+} 

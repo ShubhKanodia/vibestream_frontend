@@ -60,7 +60,7 @@ const AuthSuccess = () => {
                     </div>
                 </div>
 
-                <a href="https://bhindi.ai" target="_blank" rel="noopener noreferrer" className="proceed-btn">
+                <a href="https://bhindi.io" target="_blank" rel="noopener noreferrer" className="proceed-btn">
                     Proceed to Bhindi AI
                 </a>
             </motion.div>

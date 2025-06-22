@@ -31,15 +31,35 @@
   background: rgba(18, 18, 18, 0.7);
   border-radius: 2rem;
   box-shadow: 0 8px 32px 0 rgba(0,0,0,0.37);
-  padding: 48px;
+  padding: 40px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 32px;
-  max-width: 600px;
+  gap: 24px;
+  max-width: 580px;
   width: 100%;
   backdrop-filter: blur(24px) saturate(1.2);
   border: 1.5px solid rgba(255,255,255,0.07);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* Custom scrollbar for main container */
+.auth-success-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.auth-success-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.auth-success-container::-webkit-scrollbar-thumb {
+  background: #1db95444;
+  border-radius: 4px;
+}
+
+.auth-success-container::-webkit-scrollbar-thumb:hover {
+  background: #1db95466;
 }
 
 .vs-branding {
@@ -98,12 +118,55 @@
     margin-bottom: 0;
 }
 
+.token-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0 0 12px 0;
+    color: #b3b3b3;
+    font-size: 1rem;
+    font-family: 'Inter', sans-serif;
+}
+
+.token-row:last-child {
+    margin-bottom: 0;
+}
+
+.token-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .token-info code {
     background: #121212;
     padding: 6px 10px;
     border-radius: 8px;
     font-family: monospace;
     color: #1db954;
+}
+
+.copy-icon-btn {
+    background: none;
+    border: none;
+    color: #1db954;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.copy-icon-btn:hover {
+    background: #1db95422;
+    color: #1ed760;
+    transform: scale(1.1);
+}
+
+.copy-icon-btn:active {
+    transform: scale(0.95);
 }
 
 .action-buttons-container {
@@ -151,30 +214,55 @@
   background: #181f1b;
   border-radius: 1rem;
   border: 1.5px solid #1db95444;
-  margin: 24px 0 0 0;
-  padding: 18px 20px;
+  margin: 16px 0 0 0;
+  padding: 14px 16px;
   box-shadow: 0 2px 8px #1db95422;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-height: 180px;
+  overflow: hidden;
 }
 
 .bhindi-prompt-label {
   color: #1db954;
   font-weight: 700;
-  font-size: 1.05rem;
+  font-size: 1rem;
   margin-bottom: 2px;
+  flex-shrink: 0;
 }
 
 .bhindi-prompt-text {
   color: #fff;
   font-family: 'Inter', monospace, sans-serif;
-  font-size: 0.98rem;
+  font-size: 0.85rem;
   word-break: break-all;
   background: #232526;
   border-radius: 8px;
-  padding: 10px 12px;
+  padding: 6px 8px;
   margin-top: 2px;
+  overflow-y: auto;
+  max-height: 100px;
+  line-height: 1.4;
+}
+
+/* Custom scrollbar for prompt text */
+.bhindi-prompt-text::-webkit-scrollbar {
+  width: 6px;
+}
+
+.bhindi-prompt-text::-webkit-scrollbar-track {
+  background: #181f1b;
+  border-radius: 3px;
+}
+
+.bhindi-prompt-text::-webkit-scrollbar-thumb {
+  background: #1db95444;
+  border-radius: 3px;
+}
+
+.bhindi-prompt-text::-webkit-scrollbar-thumb:hover {
+  background: #1db95466;
 }
 
 .token-inline {
@@ -184,4 +272,90 @@
   background: #181f1b;
   border-radius: 6px;
   padding: 2px 6px;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .auth-success-container {
+    padding: 28px 20px;
+    margin: 16px;
+    max-width: calc(100% - 32px);
+    gap: 20px;
+    max-height: 85vh;
+  }
+
+  .auth-title {
+    font-size: 1.8rem;
+  }
+
+  .auth-subtitle {
+    font-size: 1rem;
+    max-width: 100%;
+  }
+
+  .token-display-wrapper {
+    padding: 16px;
+  }
+
+  .token-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .token-display {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .bhindi-prompt-text {
+    font-size: 0.9rem;
+    padding: 8px 10px;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    max-height: 120px;
+  }
+
+  .action-buttons-container {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .copy-btn, .proceed-btn {
+    font-size: 1rem;
+    padding: 14px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-success-container {
+    padding: 20px 16px;
+    margin: 12px;
+    max-width: calc(100% - 24px);
+    gap: 16px;
+    max-height: 80vh;
+  }
+
+  .auth-title {
+    font-size: 1.6rem;
+  }
+
+  .vs-logo-small {
+    width: 60px;
+  }
+
+  .token-display-wrapper {
+    padding: 12px;
+  }
+
+  .bhindi-prompt-box {
+    padding: 12px 14px;
+    max-height: 160px;
+  }
+
+  .bhindi-prompt-text {
+    font-size: 0.8rem;
+    padding: 6px 8px;
+    max-height: 90px;
+  }
 } 
